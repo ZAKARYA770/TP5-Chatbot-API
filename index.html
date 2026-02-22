@@ -1,1 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TP 5 - Chatbot IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .chat-container { height: 70vh; }
+        .bg-gradient-custom { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
+    <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="bg-gradient-custom p-6 text-white text-center">
+            <h1 class="text-2xl font-bold">Mon Assistant IA - TP 5</h1>
+            <p class="text-sm opacity-80">Propulsé par OpenRouter API</p>
+        </div>
+
+        <!-- Chat Area -->
+        <div id="chat-window" class="chat-container overflow-y-auto p-6 space-y-4 flex flex-col">
+            <!-- Message de bienvenue -->
+            <div class="bg-blue-100 self-start p-3 rounded-lg max-w-[80%] text-gray-800 shadow-sm">
+                Bonjour ! Je suis le chatbot du TP 5. Comment puis-je vous aider aujourd'hui ?
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="p-4 border-t bg-gray-50 flex items-center gap-2">
+            <input type="text" id="user-input" 
+                   class="flex-1 border rounded-full px-5 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 shadow-inner" 
+                   placeholder="Écrivez votre message ici...">
+            <button onclick="sendMessage()" 
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-full font-semibold transition-all shadow-md">
+                Envoyer
+            </button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('user-input');
+            const chatWindow = document.getElementById('chat-window');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            // Ajouter le message utilisateur
+            appendMessage(text, 'user');
+            input.value = '';
+
+            try {
+                // Afficher un indicateur de chargement
+                const loadingDiv = document.createElement('div');
+                loadingDiv.innerText = "L'IA réfléchit...";
+                loadingDiv.className = "text-xs italic text-gray-400 self-start";
+                chatWindow.appendChild(loadingDiv);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+
+                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer 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"
+                    },
+                    body: JSON.stringify({
+                        "model": "google/gemini-2.0-flash-001",
+                        "messages": [{"role": "user", "content": text}]
+                    })
+                });
+
+                const data = await response.json();
+                chatWindow.removeChild(loadingDiv);
+
+                if (data.choices && data.choices[0]) {
+                    appendMessage(data.choices[0].message.content, 'bot');
+                } else {
+                    appendMessage("Erreur: Vérifiez votre clé API ou les crédits.", 'bot');
+                }
+
+            } catch (error) {
+                console.error(error);
+                appendMessage("Erreur de connexion à l'API.", 'bot');
+            }
+        }
+
+        function appendMessage(text, sender) {
+            const chatWindow = document.getElementById('chat-window');
+            const msgDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                msgDiv.className = "bg-purple-600 text-white self-end p-4 rounded-2xl rounded-tr-none max-w-[85%] shadow-md";
+            } else {
+                msgDiv.className = "bg-gray-200 text-gray-800 self-start p-4 rounded-2xl rounded-tl-none max-w-[85%] shadow-md";
+            }
+            
+            msgDiv.innerText = text;
+            chatWindow.appendChild(msgDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Envoyer avec la touche Entrée
+        document.getElementById('user-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
